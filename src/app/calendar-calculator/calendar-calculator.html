@@ -19,7 +19,42 @@
     <!-- Header -->
     <div class="header">
         <h1>💰 Költségkövető</h1>
-        <button (click)="logout()" class="btn-logout">🚪</button>
+        <div class="header-actions">
+            <!-- Server Status -->
+            <div class="server-status" [class.online]="serverStatus === 'online'" [class.offline]="serverStatus === 'offline'" [class.checking]="serverStatus === 'checking'">
+                <span class="status-dot"></span>
+                <span class="status-text" *ngIf="serverStatus === 'online'">Backend: Online</span>
+                <span class="status-text" *ngIf="serverStatus === 'offline'">Backend: Offline</span>
+                <span class="status-text" *ngIf="serverStatus === 'checking'">Backend: Ellenőrzés...</span>
+            </div>
+            
+            <!-- Notifications Bell -->
+            <div class="notification-bell" (click)="toggleNotificationDropdown()">
+                <span class="bell-icon">🔔</span>
+                <span class="bell-badge" *ngIf="todaysNotifications.length > 0">{{ todaysNotifications.length }}</span>
+                
+                <!-- Notification Dropdown -->
+                <div class="notification-dropdown" *ngIf="showNotificationDropdown" (click)="$event.stopPropagation()">
+                    <div class="dropdown-header">
+                        <h4>Értesítések</h4>
+                        <button class="close-dropdown" (click)="closeNotificationDropdown()">✕</button>
+                    </div>
+                    <div class="dropdown-content">
+                        <div *ngIf="allNotifications.length === 0" class="no-notifications">
+                            Nincs értesítés
+                        </div>
+                        <div *ngFor="let notif of allNotifications" class="notification-item">
+                            <span class="notif-day">{{ notif.day }}.</span>
+                            <span class="notif-name">{{ notif.name }}</span>
+                            <span class="notif-amount">{{ notif.amount | number }} Ft</span>
+                            <span class="notif-recurring" *ngIf="notif.recurring">🔄</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <button (click)="logout()" class="btn-logout">🚪</button>
+        </div>
     </div>
 
     <!-- Stats Cards -->

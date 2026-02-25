@@ -123,6 +123,11 @@ app.post('/api/user/:id/expense', (req, res) => {
     res.json({ success: true });
 });
 
+// Ping endpoint for server status check
+app.get('/api/ping', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });

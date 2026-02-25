@@ -56,12 +56,17 @@ export class CalendarCalculatorComponent implements OnInit {
     daysInMonth: number[] = [];
     weekDays = ['Hé', 'Ke', 'Sz', 'Cs', 'Pé', 'Szo', 'Va'];
 
+    // Server status
+    serverStatus: 'online' | 'offline' | 'checking' = 'checking';
+    showNotificationDropdown: boolean = false;
+
     // Get data from service
     get userData() { return this.budgetService.userData(); }
     get dailyBudget(): number { return this.budgetService.getDailyBudget(); }
     get spentThisMonth(): number { return this.budgetService.getSpentThisMonth(); }
     get weeklyStatus() { return this.budgetService.getWeeklyLimitStatus(); }
     get todaysNotifications() { return this.budgetService.getTodaysNotifications(); }
+    get allNotifications() { return this.budgetService.userData().notifications; }
 
     ngOnInit(): void {
         if (!this.budgetService.isLoggedIn()) {
@@ -69,8 +74,42 @@ export class CalendarCalculatorComponent implements OnInit {
             return;
         }
         
+        // Check and reset expenses for new month
+        this.budgetService.checkAndResetMonthlyExpenses();
+        
         this.selectedDate = this.formatDate(new Date());
         this.generateCalendar();
+        
+        // Check server status
+        this.checkServerStatus();
+    }
+
+    // Check if backend server is running
+    async checkServerStatus(): Promise<void> {
+        this.serverStatus = 'checking';
+        try {
+            const response = await fetch('http://localhost:3000/api/ping', {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            if (response.ok) {
+                this.serverStatus = 'online';
+            } else {
+                this.serverStatus = 'offline';
+            }
+        } catch (error) {
+            this.serverStatus = 'offline';
+        }
+    }
+
+    // Toggle notification dropdown
+    toggleNotificationDropdown(): void {
+        this.showNotificationDropdown = !this.showNotificationDropdown;
+    }
+
+    // Close notification dropdown
+    closeNotificationDropdown(): void {
+        this.showNotificationDropdown = false;
     }
 
     toggleThemeSelector(): void {

@@ -218,6 +218,20 @@ export class BudgetService {
         return Math.max(0, available / daysRemaining);
     }
 
+    // Helper function to parse date string correctly in local timezone
+    private parseDate(dateStr: string): Date {
+        // Handle YYYY-MM-DD format - split and create date in local timezone
+        const parts = dateStr.split('-');
+        if (parts.length === 3) {
+            const year = parseInt(parts[0]);
+            const month = parseInt(parts[1]) - 1; // Month is 0-indexed in JavaScript
+            const day = parseInt(parts[2]);
+            return new Date(year, month, day);
+        }
+        // Fallback to default parsing
+        return new Date(dateStr);
+    }
+
     // Get spent amount this month
     getSpentThisMonth(): number {
         const now = new Date();
@@ -226,10 +240,54 @@ export class BudgetService {
         
         return this.userData().expenses
             .filter(e => {
-                const expDate = new Date(e.date);
+                const expDate = this.parseDate(e.date);
                 return expDate.getMonth() === currentMonth && expDate.getFullYear() === currentYear;
             })
             .reduce((sum, e) => sum + e.amount, 0);
+    }
+
+    // Get last month key for reset check
+    private getMonthKey(): string {
+        const now = new Date();
+        return `${now.getFullYear()}-${now.getMonth()}`;
+    }
+
+    // Check and reset expenses for new month
+    checkAndResetMonthlyExpenses(): void {
+        const lastMonthKey = localStorage.getItem('budget_app_last_month');
+        const currentMonthKey = this.getMonthKey();
+        
+        if (lastMonthKey !== currentMonthKey) {
+            // New month - keep settings but reset expenses
+            const currentData = this.userData();
+            const resetData: UserData = {
+                salary: currentData.salary,
+                fixedDeductions: currentData.fixedDeductions,
+                notifications: currentData.notifications,
+                expenses: [] // Reset expenses for new month
+            };
+            
+            this.userData.set(resetData);
+            localStorage.setItem('budget_app_last_month', currentMonthKey);
+            this.saveUserData();
+        } else if (!lastMonthKey) {
+            // First time - set current month
+            localStorage.setItem('budget_app_last_month', currentMonthKey);
+        }
+    }
+
+    // Reset expenses manually (for testing or user request)
+    resetMonthlyExpenses(): void {
+        const currentData = this.userData();
+        const resetData: UserData = {
+            salary: currentData.salary,
+            fixedDeductions: currentData.fixedDeductions,
+            notifications: currentData.notifications,
+            expenses: []
+        };
+        this.userData.set(resetData);
+        localStorage.setItem('budget_app_last_month', this.getMonthKey());
+        this.saveUserData();
     }
 
     // Get weekly limit status
@@ -258,7 +316,7 @@ export class BudgetService {
         startOfWeek.setHours(0, 0, 0, 0);
         
         return this.userData().expenses
-            .filter(e => new Date(e.date) >= startOfWeek)
+            .filter(e => this.parseDate(e.date) >= startOfWeek)
             .reduce((sum, e) => sum + e.amount, 0);
     }
 
