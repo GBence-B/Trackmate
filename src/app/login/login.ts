@@ -185,7 +185,7 @@ export class LoginComponent {
         this.budgetService.updateSalary(this.salary);
         this.fixedDeductions.forEach(d => this.budgetService.addFixedDeduction(d));
         this.notifications.forEach(n => this.budgetService.addNotification(n));
-        this.router.navigate(['/main']);
+this.router.navigate(['/main']);
     }
 
     logout(): void {

@@ -1,0 +1,173 @@
+<div class="admin-dashboard">
+  <!-- Theme Selector -->
+  <div class="theme-selector">
+    <button (click)="toggleThemeSelector()" class="btn-theme">
+      🎨 Téma
+    </button>
+    <div *ngIf="showThemeSelector" class="theme-dropdown">
+      <div *ngFor="let theme of themes; let i = index" 
+           class="theme-option"
+           (click)="selectTheme(i)">
+        <span class="theme-color" [style.background]="theme.primaryColor"></span>
+        {{ theme.icon }} {{ theme.name }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Server Status -->
+  <div class="status-bar">
+    <div class="server-status" [class.online]="serverStatus === 'online'" [class.offline]="serverStatus === 'offline'">
+      Backend: {{ serverStatus === 'online' ? '🟢 Online' : '🔴 Offline' }}
+    </div>
+    <button (click)="loadRawData()" class="btn-raw" *ngIf="adminLoggedIn">Raw data</button>
+  </div>
+
+  <!-- Admin Login Form -->
+  <div *ngIf="!adminLoggedIn" class="login-section">
+    <div class="auth-card">
+      <h2>Admin bejelentkezés</h2>
+      <p class="login-subtitle">Adminisztrációs felület eléréséhez jelentkezz be</p>
+      <form (ngSubmit)="adminLogin()" #loginForm="ngForm">
+        <div class="form-group">
+          <label>Felhasználónév</label>
+          <input type="text" [(ngModel)]="adminUsername" name="adminUsername" required>
+        </div>
+        <div class="form-group">
+          <label>Jelszó</label>
+          <input type="password" [(ngModel)]="adminPassword" name="adminPassword" required>
+        </div>
+        <div *ngIf="loginError" class="error-message">{{ loginError }}</div>
+        <button type="submit" class="btn-primary">Bejelentkezés</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Admin Section -->
+  <div *ngIf="adminLoggedIn">
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active">👥 Felhasználók</button>
+      <button class="tab-btn" (click)="showStats = true">📊 Statisztikák</button>
+      <button class="tab-btn" (click)="loadRawData(); showRaw = true">📄 Raw data</button>
+    </div>
+
+    <!-- New User Form -->
+    <div class="new-user-section">
+      <button class="btn-add-user" (click)="showNewUserForm = true">➕ Új felhasználó</button>
+    </div>
+
+    <!-- New User Form Modal -->
+    <div *ngIf="showNewUserForm" class="modal-overlay">
+      <div class="modal">
+        <h3>Új felhasználó létrehozása</h3>
+        <form (ngSubmit)="createUser()">
+          <div class="form-group">
+            <label>Felhasználónév</label>
+            <input type="text" [(ngModel)]="newUser.username" name="username" required>
+          </div>
+          <div class="form-group">
+            <label>Jelszó</label>
+            <input type="password" [(ngModel)]="newUser.password" name="password" required>
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" [(ngModel)]="newUser.email" name="email">
+          </div>
+          <div class="form-group">
+            <label>Fizetés (Ft)</label>
+            <input type="number" [(ngModel)]="newUser.salary" name="salary">
+          </div>
+          <div class="modal-buttons">
+            <button type="submit" class="btn-primary">Létrehoz</button>
+            <button type="button" (click)="showNewUserForm = false" class="btn-secondary">Mégse</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="users-table-section">
+      <h2>Felhasználók</h2>
+      <div *ngIf="allUsers.length === 0" class="no-data">
+        Nincs felhasználó
+      </div>
+      <table *ngIf="allUsers.length > 0" class="users-table">
+        <thead>
+          <tr>
+            <th>Felhasználónév</th>
+            <th>Fizetés</th>
+            <th>Költések száma</th>
+            <th>Költött összesen</th>
+            <th>Műveletek</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let user of allUsers">
+            <td>{{ user.username }}</td>
+            <td>{{ user.salary | number }} Ft</td>
+            <td>{{ user.expensesCount }}</td>
+            <td>{{ user.totalSpent | number }} Ft</td>
+            <td>
+              <button class="btn-small btn-edit" (click)="editUser(user)">Szerkeszt</button>
+              <button class="btn-small btn-delete" (click)="deleteUser(user.username)">Töröl</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Edit User Form -->
+    <div *ngIf="showEditForm" class="modal-overlay">
+      <div class="modal">
+        <h3>{{ editUserUsername }} szerkesztése</h3>
+        <form (ngSubmit)="updateUser()">
+          <div class="form-group">
+            <label>Felhasználónév</label>
+            <input type="text" [value]="editUserUsername" disabled>
+          </div>
+          <div class="form-group">
+            <label>Fizetés (Ft)</label>
+            <input type="number" [(ngModel)]="editUserSalary" name="salary">
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" [(ngModel)]="editUserEmail" name="email">
+          </div>
+          <div class="modal-buttons">
+            <button type="submit" class="btn-primary">Frissít</button>
+            <button type="button" (click)="showEditForm = false" class="btn-secondary">Mégse</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div *ngIf="false" class="stats-section">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <h3>👥 Total Users</h3>
+          <p class="big-number">{{ totalUsers }}</p>
+        </div>
+        <div class="stat-card">
+          <h3>📄 Data File</h3>
+          <p>{{ dataFileSize | number }} bytes</p>
+        </div>
+        <div class="stat-card">
+          <h3>💰 Avg Salary</h3>
+          <p>{{ getAverageSalary() | number }} Ft</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Raw Data -->
+    <div *ngIf="rawData" class="raw-data">
+      <h2>Raw data.json</h2>
+      <pre>{{ rawData | json }}</pre>
+    </div>
+
+    <!-- Current User -->
+    <div *ngIf="isLoggedIn" class="current-user">
+      <h3>Aktuális felhasználó fizetése: {{ loggedInUserSalary | number }} Ft</h3>
+    </div>
+  </div>
+</div>

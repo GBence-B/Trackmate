@@ -13,6 +13,11 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// ROOT route
+app.get("/", (req, res) => {
+    res.send("Backend működik 🚀");
+});
+
 // Load data from file
 function loadData() {
     try {
@@ -35,7 +40,6 @@ app.post('/api/login', (req, res) => {
     const { username, password } = req.body;
     const data = loadData();
     
-    // Check if user exists and password matches
     if (data.users[username] && data.users[username].password === password) {
         res.json({ success: true, userId: username });
     } else {
@@ -51,7 +55,6 @@ app.post('/api/register', (req, res) => {
     if (data.users[username]) {
         res.json({ success: false, message: 'Felhasználó már létezik' });
     } else {
-        // Create new user with default data
         data.users[username] = {
             password: password,
             email: email || '',
@@ -70,7 +73,6 @@ app.get('/api/user/:id', (req, res) => {
     const data = loadData();
     const user = data.users[req.params.id];
     if (user) {
-        // Don't return password
         const { password, ...userData } = user;
         res.json(userData);
     } else {
@@ -84,11 +86,9 @@ app.post('/api/user/:id', (req, res) => {
     const { salary, fixedDeductions, notifications, expenses } = req.body;
     
     if (data.users[req.params.id]) {
-        // Preserve password and email
         const password = data.users[req.params.id].password;
         const email = data.users[req.params.id].email;
         
-        // Ensure arrays are always arrays
         data.users[req.params.id] = {
             salary: salary || 0,
             fixedDeductions: Array.isArray(fixedDeductions) ? fixedDeductions : [],
@@ -123,7 +123,88 @@ app.post('/api/user/:id/expense', (req, res) => {
     res.json({ success: true });
 });
 
-// Ping endpoint for server status check
+// Admin endpoints
+app.get('/api/admin/users', (req, res) => {
+    const data = loadData();
+    const users = {};
+    for (const [username, user] of Object.entries(data.users || {})) {
+        const { password, ...safeUser } = user;
+        users[username] = safeUser;
+    }
+    res.json({ users, totalUsers: Object.keys(users).length, dataFileSize: fs.existsSync(DATA_FILE) ? fs.statSync(DATA_FILE).size : 0 });
+});
+
+app.get('/api/admin/raw', (req, res) => {
+    const data = loadData();
+    res.json(data);
+});
+
+// Admin CRUD - Create user
+app.post('/api/admin/user', (req, res) => {
+    const { username, password, salary = 0, email = '' } = req.body;
+    const data = loadData();
+    
+    if (data.users[username]) {
+        return res.status(400).json({ success: false, message: 'User already exists' });
+    }
+    
+    data.users[username] = {
+        password,
+        salary,
+        email,
+        fixedDeductions: [],
+        notifications: [],
+        expenses: []
+    };
+    saveData(data);
+    res.json({ success: true, message: 'User created' });
+});
+
+// Admin CRUD - Update user
+app.put('/api/admin/user/:username', (req, res) => {
+    const username = req.params.username;
+    const updates = req.body;
+    const data = loadData();
+    
+    if (!data.users[username]) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    
+    data.users[username] = { ...data.users[username], ...updates };
+    saveData(data);
+    res.json({ success: true });
+});
+
+// Admin CRUD - Delete user
+app.delete('/api/admin/user/:username', (req, res) => {
+    const username = req.params.username;
+    const data = loadData();
+    
+    if (!data.users[username]) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    
+    delete data.users[username];
+    saveData(data);
+    res.json({ success: true });
+});
+
+// Admin add expense to user
+app.post('/api/admin/user/:username/expense', (req, res) => {
+    const username = req.params.username;
+    const expense = req.body;
+    const data = loadData();
+    
+    if (!data.users[username]) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    
+    data.users[username].expenses.push(expense);
+    saveData(data);
+    res.json({ success: true });
+});
+
+// Ping endpoint
 app.get('/api/ping', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });

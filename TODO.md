@@ -1,15 +1,14 @@
-# TrackMate App - Run Page TODO
+# TrackMate Admin Dashboard & Login Fix
 
-## Approved Plan Steps (Confirmed by user)
+## Steps:
+1. [x] Fix login redirect issue (login.ts -> navigates to main after success)
+2. [x] Start backend server (server/index.js)
+3. [x] Add admin CRUD endpoints to backend
+4. [x] Update dashboard.ts with login form and CRUD functions
+5. [x] Redesign dashboard.html with tabs, modals, tables
+6. [x] Style dashboard.css for modern prettier look
+7. [ ] Test all pages and CRUD operations
+8. [ ] attempt_completion
 
-1. ✅ Clean install dependencies - Complete (npm install running/finished)
-2. Kill existing ng serve terminals - New fresh serve next
-3. ✅ Fixed imports - FormsModule from '@angular/forms', CommonModule from '@angular/common' in calculator.ts, login.ts
-4. Restart ng serve on port 4201
-5. Test app: http://localhost:4201
-6. Backend optional (server/ localhost:3000)
-7. Complete
-
-**Progress: COMPLETE! Angular dev server running at http://localhost:4201/ ✅**
-
+Current progress: Backend CRUD complete, now implementing dashboard UI
 

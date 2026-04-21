@@ -1,11 +1,11 @@
 {
   "users": {
     "teszt": {
-      "password": "teszt123",
       "salary": 0,
       "fixedDeductions": [],
       "notifications": [],
-      "expenses": []
+      "expenses": [],
+      "password": "teszt123"
     },
     "majom": {
       "salary": 50000,
@@ -106,6 +106,14 @@
       "fixedDeductions": [],
       "notifications": [],
       "expenses": []
+    },
+    "fasz": {
+      "salary": 100000,
+      "fixedDeductions": [],
+      "notifications": [],
+      "expenses": [],
+      "password": "pocs",
+      "email": "adam.zsitnyak@gmail.com"
     }
   }
 }
