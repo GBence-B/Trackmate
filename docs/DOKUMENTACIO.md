@@ -27,9 +27,22 @@
    3.4. Szervizek
    3.5. Útvonalak és route-védők
    3.6. Adatmodellek (TypeScript interfészek)
-   3.7. Továbbfejlesztési lehetőségek
+   3.7. HTTP Interceptorok
+   3.8. Továbbfejlesztési lehetőségek
 4. Felhasználói kézikönyv
+   4.1. Regisztráció és bejelentkezés
+   4.2. Beállítások (fizetés, fix kiadások, értesítések)
+   4.3. Fő képernyő – Naptár és költéskezelés
+   4.4. Adminisztrátori felület
+   4.5. Téma váltás
 5. Telepítési útmutató
+   5.1. Követelmények
+   5.2. MySQL adatbázis létrehozása
+   5.3. Laravel backend telepítése
+   5.4. Angular frontend telepítése
+   5.5. Alapértelmezett belépési adatok
+   5.6. Fejlesztői parancsok
+   5.7. Hibaelhárítás
 6. Összefoglalás
 
 ---
@@ -252,10 +265,9 @@ Az API hitelesítés Laravel Sanctum token-alapú módszerrel működik. A bejel
 - WebSocket / Server-Sent Events alapú valós idejű értesítések.
 - Részletes audit log: ki, mikor, mit változtatott a rendszerben.
 - PDF alapú havi költségvetési riport automatikus generálása.
-- Kétfaktoros hitelesítés (2FA) bevezetése admin jogkörű felhasználóknak.
-- Automatikus havi költési limit értesítések e-mailben.
-- Teljes Policy-rendszer finomhangolása az összes erőforrásra.
-- Csatolmányok kezelése (számlaképek feltöltése).
+- Kétfaktoros hitelesítés (2FA) bevezetése admin felhasználók számára.
+- Automatikus adatbázis backup és restore funkció.
+- Redis alapú cache-elés a gyakran lekérdezett adatokhoz.
 
 ---
 
@@ -266,146 +278,199 @@ Az API hitelesítés Laravel Sanctum token-alapú módszerrel működik. A bejel
 ```
 src/
 ├── app/
-│   ├── calendar-calculator/        # Fő alkalmazás (naptár + költések)
-│   ├── dashboard/                  # Admin felület
-│   ├── login/                      # Bejelentkezés / regisztráció / beállítások
-│   ├── welcome/                    # Kezdőlap
+│   ├── app.component.ts              # Root komponens (router-outlet + toast)
+│   ├── app.config.ts                 # Alkalmazás konfiguráció (route, HTTP interceptors)
+│   ├── app.routes.ts                 # Útvonalak definíciója
+│   ├── calendar-calculator/          # Fő alkalmazás (naptár + költéskezelés)
+│   │   ├── calendar-calculator.ts
+│   │   ├── calendar-calculator.html
+│   │   └── calendar-calculator.css
 │   ├── components/
-│   │   └── toast/                  # Értesítési komponens
+│   │   └── toast/                    # Toast értesítések
+│   │       ├── toast.ts
+│   │       ├── toast.html
+│   │       └── toast.css
+│   ├── dashboard/                    # Admin felület
+│   │   ├── dashboard.ts
+│   │   ├── dashboard.html
+│   │   ├── dashboard.css
+│   │   └── dashboard.spec.ts
 │   ├── interceptors/
-│   │   ├── auth.interceptor.ts     # Bearer token automatikus küldése
-│   │   ├── error.interceptor.ts    # Hibakezelés
-│   │   └── loading.interceptor.ts  # Betöltésjelző
+│   │   ├── auth.interceptor.ts       # Bearer token automatikus küldése
+│   │   ├── error.interceptor.ts      # Hibakezelés és toast megjelenítés
+│   │   ├── loading.interceptor.ts    # Loading állapot kezelése
+│   │   └── loading.interceptor.spec.ts
+│   ├── login/                        # Bejelentkezés / regisztráció / beállítások
+│   │   ├── login.ts
+│   │   ├── login.html
+│   │   └── login.css
 │   ├── models/
-│   │   ├── user.model.ts           # TypeScript interfészek
-│   │   ├── theme.model.ts
-│   │   └── api.model.ts
+│   │   ├── api.model.ts              # API válasz és kérés típusok
+│   │   ├── theme.model.ts            # Téma interfész definíció
+│   │   └── user.model.ts             # Felhasználói adat típusok
 │   ├── services/
-│   │   ├── budget.service.ts       # Fő szolgáltatás (API hívások)
-│   │   ├── auth.guard.ts           # Route-védők
-│   │   ├── theme.service.ts        # Témaváltás
-│   │   ├── error.service.ts        # Hibakezelés
-│   │   └── loading.service.ts      # Betöltésjelző
-│   ├── app.component.ts
-│   ├── app.config.ts               # Alkalmazás konfiguráció
-│   └── app.routes.ts               # Útvonalak
+│   │   ├── auth.guard.ts             # Route védelem (bejelentkezés, admin)
+│   │   ├── budget.service.ts         # Fő szolgáltatás – API hívások, üzleti logika
+│   │   ├── error.service.ts          # Toast kezelés
+│   │   ├── error.service.spec.ts
+│   │   ├── loading.service.ts        # Loading spinner állapot
+│   │   └── theme.service.ts          # Téma váltás és CSS változók kezelése
+│   └── welcome/                      # Kezdőlap
+│       ├── welcome.ts
+│       ├── welcome.html
+│       └── welcome.css
 ├── environments/
-│   ├── environment.ts              # Dev API URL: http://localhost:8000/api
-│   └── environment.prod.ts         # Prod API URL: http://localhost:8000/api
+│   ├── environment.ts                # Dev környezet (API URL, app név, verzió)
+│   └── environment.prod.ts           # Produkciós környezet
 ├── index.html
-├── main.ts
-└── styles.css
+├── main.ts                           # Bootstrap (bootstrapApplication)
+└── styles.css                        # Globális stílusok, CSS változók
 ```
 
 ### 3.2. Fejlesztéshez használt eszközök és technológiák
 
-| Eszköz | Verzió | Felhasználás |
-|--------|--------|--------------|
-| Angular | 17+ | Frontend SPA keretrendszer (standalone komponensek) |
-| TypeScript | 5.x | Erősen típusos JavaScript szuperhalmaz |
-| CSS3 | – | Reszponzív stílusozás |
-| RxJS | 7.x | Reaktív programozás, Observable-alapú adatfolyamok |
-| Angular HttpClient | – | HTTP kérések kezelése, interceptorok |
-| localStorage | – | Auth token és user adatok tárolása |
+| Eszköz / Technológia | Verzió | Felhasználás |
+|---------------------|--------|--------------|
+| Angular | 17+ | Frontend keretrendszer, standalone komponensek |
+| TypeScript | 5.x | Típusos JavaScript |
+| RxJS | 7.x | Reaktív programozás, HTTP hívások kezelése |
+| CSS3 | – | Stílusozás, CSS változók, animációk |
+| Angular CLI | 17+ | Projekt generálás, build, serve |
+| Node.js | 18+ | Futtatási környezet |
+| npm | 9+ | Csomagkezelő |
 | Visual Studio Code | – | Fejlesztői szövegszerkesztő |
 
 ### 3.3. Komponensek
 
-#### TrackyComponent (calendar-calculator) – /main
-- A felhasználó fő felülete, ahol a naptár és a költések kezelése történik.
-- Naptár nézet a hónap napjaival, hétfővel kezdődő hetek.
-- Napi költések megtekintése, hozzáadása, szerkesztése és törlése nap szerint.
-- Kategóriák szerinti költésrögzítés (Étel, Bolt, Cigi, Szórakozás, Kávé, Utazás, Ruházat, Egészség, Számlák, Egyéb).
-- Havi összesítések: összköltés, napi keret, heti limit státusz.
-- Diagramok: kategóriánkénti költés megoszlás (kördiagram), top 5 költés.
-- Szerver státusz ellenőrzése (`/api/ping`).
+#### WelcomeComponent (`welcome/welcome.ts`)
+A landing page komponens, amely az alkalmazás első betöltődéskor jelenik meg. Tartalmazza az alkalmazás rövid bemutatását, a bejelentkezés/regisztráció gombot, valamint a téma választó lehetőséget.
 
-#### DashboardComponent – /admin
-- Az adminisztrátori felület, kizárólag `is_admin = true` felhasználóknak érhető el.
-- Összes felhasználó listázása: név, e-mail, fizetés, költések száma, költött összeg.
-- Új felhasználó létrehozása (username, password, e-mail, salary).
-- Felhasználó szerkesztése (salary, e-mail módosítása).
-- Felhasználó törlése: megerősítő dialógus után véglegesen törölhető.
-- Statisztikák megtekintése.
-- Szerver státusz ellenőrzése.
+**Kulcsfunkciók:**
+- Téma váltás (ThemeService integráció)
+- Navigáció a bejelentkezési oldalra
 
-#### LoginComponent – /login
-- Bejelentkezési és regisztrációs űrlap.
-- Sikeres belépés esetén a token és user adatok `localStorage`-ba kerülnek.
-- Bejelentkezés után automatikus átirányítás a `/main` oldalra.
-- Első bejelentkezéskor fizetés, fix kiadások és értesítések beállítása.
-- Témaváltási lehetőség.
+#### LoginComponent (`login/login.ts`)
+A bejelentkezési és regisztrációs űrlapot, valamint a kezdeti beállításokat kezeli. Két módot támogat: bejelentkezés és regisztráció. Sikeres autentikáció után megjeleníti a felhasználói beállításokat (fizetés, fix kiadások, értesítések).
 
-#### WelcomeComponent – /
-- Kezdőlap, rövid bemutatkozás.
-- Bejelentkezés és regisztráció gombok.
+**Kulcsfunkciók:**
+- Bejelentkezés / regisztráció (`BudgetService.login`, `BudgetService.register`)
+- Fizetés megadása és mentése
+- Fix kiadások hozzáadása, szerkesztése, törlése
+- Értesítések (emlékeztetők) hozzáadása és törlése
+- Havi költségvetés kiszámítása (`salary - fix kiadások`)
+- Téma váltás
 
-#### ToastComponent
-- Értesítések megjelenítése sikeres és hibás műveletekhez.
+#### TrackyComponent (`calendar-calculator/calendar-calculator.ts`)
+A fő alkalmazási komponens, amely a naptár nézetet és a költéskezelést biztosítja. Itt történik a napi költések rögzítése, a naptár megjelenítése, valamint a statisztikák és diagramok kezelése.
+
+**Kulcsfunkciók:**
+- Naptár generálása (hétfővel kezdődő hét)
+- Napi költések rögzítése kategóriák szerint (étel, bolt, cigi, szórakozás, kávé, utazás, ruházat, egészség, számlák, egyéb)
+- Napi/heti/havi költési statisztikák megjelenítése
+- Kategóriánkénti költési megoszlás (kördiagram)
+- Heti limit figyelmeztetés (70% és 100% túllépés)
+- Napi értesítések megjelenítése (esedékes számlák, emlékeztetők)
+- Szerver státusz ellenőrzés (`/api/ping`)
+- Hónap váltása (előző/következő)
+- Nap szerkesztése (részletes nézet egy adott nap költéseihez)
+
+#### DashboardComponent (`dashboard/dashboard.ts`)
+Az adminisztrátori felület, amely csak admin jogosultsággal érhető el. A rendszer összes felhasználójának adatait, statisztikáit és kezelési lehetőségeit biztosítja.
+
+**Kulcsfunkciók:**
+- Összes felhasználó listázása (`/api/admin/users`)
+- Új felhasználó létrehozása
+- Felhasználó adatainak módosítása (fizetés, e-mail)
+- Felhasználó törlése
+- Rendszerstatisztikák megjelenítése (`/api/admin/stats`)
+- Szerver státusz ellenőrzése
+- Téma váltás
+
+#### ToastComponent (`components/toast/toast.ts`)
+Az értesítések megjelenítését végzi. Az `ErrorService` által kezelt toast üzeneteket jeleníti meg a képernyő tetején. Támogatja a success, warning, error és info típusokat.
 
 ### 3.4. Szervizek
 
-#### BudgetService
-Az összes backend API kommunikációt és üzleti logikát összefogja. Főbb metódusai:
+#### BudgetService (`services/budget.service.ts`)
+A frontend legfontosabb szolgáltatása. Kezeli a felhasználói adatokat, az API kommunikációt, az autentikációt és az üzleti logikát.
 
-| Metódus | Leírás |
-|---------|--------|
-| `login(username, password)` | Bejelentkezés, token + userId mentése localStorage-ba |
-| `register(username, password, email)` | Regisztráció |
-| `logout()` | Kijelentkezés, token törlése, backend logout hívás |
-| `loadUserData()` | User adatok betöltése `/api/user` végpointról |
-| `saveUserData()` | User adatok mentése `/api/user` végpontba |
-| `addExpense(expense)` | Új költés rögzítése |
-| `updateSalary(salary)` | Fizetés frissítése |
-| `addFixedDeduction(deduction)` | Új fix kiadás |
-| `updateFixedDeduction(id, deduction)` | Fix kiadás módosítása |
-| `removeFixedDeduction(id)` | Fix kiadás törlése |
-| `addNotification(notification)` | Új értesítés |
-| `removeNotification(id)` | Értesítés törlése |
-| `getDailyBudget()` | Napi keret számítása |
-| `getSpentThisMonth()` | Havi összköltés |
-| `getWeeklyLimitStatus()` | Heti limit státusz (warning/exceeded) |
-| `checkAndResetMonthlyExpenses()` | Havi költések nullázása új hónapban |
+**Főbb felelősségek:**
+- **Autentikáció:** `login()`, `register()`, `logout()` – Bearer token és user ID tárolása `localStorage`-ban.
+- **Adatkezelés:** `loadUserData()`, `saveUserData()`, `updateSalary()` – API-n keresztüli adat szinkronizáció.
+- **CRUD műveletek:** `addExpense()`, `addFixedDeduction()`, `addNotification()`, `removeFixedDeduction()`, `removeNotification()`, `updateFixedDeduction()`, `updateExpense()`.
+- **Üzleti logika:**
+  - `getDailyBudget()` – Napi költségvetés számítása a megmaradt összeg és a hátralévő napok alapján.
+  - `getSpentThisMonth()` – Aktuális havi költés összesítése.
+  - `getSpentThisWeek()` – Aktuális heti költés összesítése.
+  - `getWeeklyLimitStatus()` – Heti limit állapotának ellenőrzése (70% figyelmeztetés, 100% túllépés).
+  - `getTodaysNotifications()` – Mai napi esedékes értesítések lekérdezése.
+  - `checkAndResetMonthlyExpenses()` – Havi költések automatikus nullázása új hónap kezdetekor.
+- **Signal alapú reaktivitás:** A `userData` signal (`WritableSignal<UserData>`) biztosítja, hogy a komponensek automatikusan frissüljenek az adatváltozásokkor.
 
-#### AuthGuard (autoLoginGuard)
-Ellenőrzi, hogy érvényes token van-e a `localStorage`-ban. Ha nincs, átirányít a `/login` oldalra.
+#### ThemeService (`services/theme.service.ts`)
+A témaváltásért és a CSS változók dinamikus alkalmazásáért felelős. 8 előre definiált témát tartalmaz (Sötét, Világos, Naplemente, Őserdő, Tenger, Rózsa, Arany, Minimal).
 
-#### AdminGuard (adminGuard)
-Ellenőrzi, hogy a bejelentkezett felhasználónak admin jogköre van-e (`is_admin = true`). Ha nem, átirányít a `/main` oldalra.
+**Kulcsfunkciók:**
+- `setTheme(index)` – Téma váltása és mentése `localStorage`-ba.
+- `applyTheme(theme)` – CSS változók beállítása a `:root` elemre (`--primary-color`, `--background`, stb.).
+- `currentTheme` – Signal, amely a jelenleg aktív témát tárolja.
 
-#### ThemeService
-Témaváltási logikát biztosít. Több előre definiált téma közül választhat a felhasználó.
+#### ErrorService (`services/error.service.ts`)
+A hibák és sikeres műveletek toast értesítésként való megjelenítését kezeli.
 
-#### ErrorService
-Hibák és sikeres műveletek megjelenítését kezeli toast értesítések formájában.
+**Kulcsfunkciók:**
+- `show(message, type, duration)` – Toast üzenet megjelenítése.
+- `handleError(error, fallbackMessage)` – HTTP hibák feldolgozása és megjelenítése.
+- `handleSuccess(message)` – Sikeres művelet visszajelzése.
+- `toasts` – Signal, amely a jelenleg megjelenített toast üzeneteket tartalmazza.
 
-#### LoadingService
-HTTP kérések közötti betöltésjelzőt kezel.
+#### LoadingService (`services/loading.service.ts`)
+A HTTP kérések alatt megjelenő loading spinner állapotát kezeli.
+
+**Kulcsfunkciók:**
+- `start()` / `stop()` – Kérésszámláló alapú loading állapot kezelése.
+- `isLoading` – Signal, amely jelzi, hogy van-e folyamatban lévő kérés.
 
 ### 3.5. Útvonalak és route-védők
 
-| Útvonal | Komponens | Védő |
-|---------|-----------|------|
-| `/` | WelcomeComponent | – |
-| `/login` | LoginComponent | – |
-| `/main` | TrackyComponent | autoLoginGuard |
-| `/admin` | DashboardComponent | autoLoginGuard + adminGuard |
-| `**` | WelcomeComponent | – |
+Az útvonalak az `app.routes.ts` fájlban vannak definiálva:
 
-**authInterceptor:** Minden HTTP kéréshez automatikusan hozzáadja az `Authorization: Bearer <token>` fejlécet, ha van token a `localStorage`-ban.
+```typescript
+export const routes: Routes = [
+    { path: '', component: WelcomeComponent },
+    { path: 'login', component: LoginComponent },
+    { path: 'main', component: TrackyComponent, canActivate: [autoLoginGuard] },
+    { path: 'admin', component: DashboardComponent, canActivate: [adminGuard] },
+    { path: '**', component: WelcomeComponent }
+];
+```
+
+| Útvonal | Komponens | Védelem | Leírás |
+|---------|-----------|---------|--------|
+| `/` | WelcomeComponent | – | Kezdőlap |
+| `/login` | LoginComponent | – | Bejelentkezés / regisztráció |
+| `/main` | TrackyComponent | `autoLoginGuard` | Fő alkalmazás (csak bejelentkezve) |
+| `/admin` | DashboardComponent | `adminGuard` | Admin felület (csak admin jogosultsággal) |
+| `**` | WelcomeComponent | – | 404 – vissza a kezdőlapra |
+
+#### Route védők (`services/auth.guard.ts`)
+
+**autoLoginGuard:** Ellenőrzi, hogy a felhasználó be van-e jelentkezve (`BudgetService.isLoggedIn()`). Ha nem, átirányít a `/login` oldalra.
+
+**adminGuard:** Ellenőrzi, hogy a felhasználó be van-e jelentkezve ÉS admin jogosultsággal rendelkezik-e (`BudgetService.isAdminUser()`). Ha nem, átirányít a `/main` oldalra.
 
 ### 3.6. Adatmodellek (TypeScript interfészek)
 
-A `user.model.ts` fájlban definiált interfészek:
+#### `user.model.ts`
 
 ```typescript
-interface FixedDeduction {
+export interface FixedDeduction {
   id?: number;
   name: string;
   amount: number;
 }
 
-interface Notification {
+export interface Notification {
   id?: number;
   name: string;
   amount: number;
@@ -413,14 +478,14 @@ interface Notification {
   recurring: boolean;
 }
 
-interface Expense {
+export interface Expense {
   id?: number;
-  date: string;      // YYYY-MM-DD
+  date: string;
   amount: number;
   description: string;
 }
 
-interface UserData {
+export interface UserData {
   email?: string;
   salary: number;
   fixedDeductions: FixedDeduction[];
@@ -428,7 +493,7 @@ interface UserData {
   expenses: Expense[];
 }
 
-interface LoginResponse {
+export interface LoginResponse {
   success: boolean;
   userId?: string;
   token?: string;
@@ -437,324 +502,354 @@ interface LoginResponse {
 }
 ```
 
-### 3.7. Továbbfejlesztési lehetőségek
+#### `theme.model.ts`
 
-- WebSocket / Server-Sent Events alapú valós idejű értesítések.
-- PWA (Progressive Web App) támogatás – offline használat, push értesítések.
-- Exportálás: havi költségvetés PDF-be vagy Excel-be mentése.
-- Sötét mód teljes körű megvalósítása.
-- Többnyelvűsítés (i18n) bevezetése Angular ngx-translate segítségével.
-- Egységtesztek (Jasmine/Karma) és end-to-end tesztek (Cypress / Playwright) bővítése.
-- Grafikonok bővítése (trendvonalak, előző havi összehasonlítás).
+```typescript
+export interface Theme {
+  name: string;
+  icon: string;
+  primaryColor: string;
+  secondaryColor: string;
+  background: string;
+  backgroundGradient: string;
+  cardBg: string;
+  textColor: string;
+  textSecondary: string;
+  borderColor: string;
+  success: string;
+  warning: string;
+  danger: string;
+  inputBg: string;
+  isDark: boolean;
+}
+```
+
+#### `api.model.ts`
+
+```typescript
+export interface ApiSuccessResponse {
+  success: true;
+  message?: string;
+}
+
+export interface PingResponse {
+  status: string;
+  timestamp: string;
+}
+
+export interface AdminUsersResponse {
+  users: Record<string, Omit<any, 'password'>>;
+  totalUsers: number;
+  dataFileSize: number;
+}
+```
+
+### 3.7. HTTP Interceptorok
+
+Az interceptorok az `app.config.ts`-ben vannak regisztrálva a `provideHttpClient(withInterceptors([...]))` segítségével. A végrehajtási sorrend: `authInterceptor` → `loadingInterceptor` → `errorInterceptor`.
+
+#### auth.interceptor.ts
+Minden HTTP kéréshez automatikusan hozzáadja az `Authorization: Bearer <token>` fejlécet, ha a felhasználó be van jelentkezve (a token a `localStorage`-ból olvasódik).
+
+#### loading.interceptor.ts
+Minden HTTP kérés indításakor meghívja a `LoadingService.start()` metódust, és a kérés befejezésekor (finalize) a `LoadingService.stop()` metódust. Ez biztosítja, hogy a loading spinner csak akkor tűnjön el, amikor az összes párhuzamos kérés befejeződött.
+
+#### error.interceptor.ts
+HTTP hibák esetén a megfelelő hibaüzenetet állítja össze a státuszkód alapján:
+- **0** – A szerver nem elérhető
+- **400** – Hibás kérés
+- **401** – Nincs jogosultság
+- **404** – A kért erőforrás nem található
+- **500** – Szerver hiba
+
+A hibaüzenetet az `ErrorService.show()` metódussal jeleníti meg toast formában.
+
+### 3.8. Továbbfejlesztési lehetőségek
+
+- **PWA (Progressive Web App)** támogatás: Offline működés Service Workerrel.
+- **Animációk és átmenetek:** Angular Animations használata oldalváltásokhoz és elemek megjelenéséhez.
+- **Reszponzív mobil optimalizálás:** Érintésre optimalizált felület, swipe gesztusok.
+- **Többnyelvűség (i18n):** Angular i18n vagy ngx-translate integrálása.
+- **Költségvetési célok beállítása:** Havi/éves megtakarítási célok és azok nyomon követése.
+- **Export funkció:** CSV/Excel export a költési adatokból.
+- **Grafikonok és diagramok:** Chart.js integrálása részletesebb statisztikákhoz.
 
 ---
 
 ## 4. Felhasználói kézikönyv
 
-### 4.1. Regisztráció és első belépés
+### 4.1. Regisztráció és bejelentkezés
 
-Új felhasználó a `/login` oldalon tud regisztrálni a "Regisztráció" módra váltva. A regisztrációhoz szükséges egy felhasználónév, jelszó (min. 4 karakter) és opcionálisan e-mail cím megadása. Sikeres regisztráció után a felhasználó automatikusan bejelentkezik, és megjelennek a kezdeti beállítások (fizetés, fix kiadások, értesítések).
+1. Nyisd meg a böngészőben az alkalmazást: `http://localhost:4200`
+2. A kezdőlapon kattints a **Bejelentkezés** gombra.
+3. Ha még nincs fiókod, kattints az **Új fiók létrehozása** linkre.
+4. Töltsd ki a kötelező mezőket:
+   - **Felhasználónév** (legalább 1 karakter)
+   - **Jelszó** (legalább 4 karakter)
+   - **E-mail** (regisztrációnál)
+   - **Jelszó megerősítése** (regisztrációnál)
+5. Kattints a **Bejelentkezés** vagy **Regisztráció** gombra.
+6. Sikeres autentikáció után automatikusan megjelennek a **Beállítások**.
 
-### 4.2. Bejelentkezés
+### 4.2. Beállítások (fizetés, fix kiadások, értesítések)
 
-A bejelentkezési oldalon a felhasználónév és jelszó megadása szükséges. Sikeres bejelentkezés után a rendszer automatikusan a megfelelő főoldalra irányít:
-- Admin (super admin) → `/admin` felület
-- Normál felhasználó → `/main` felület
+A bejelentkezés után a következő beállításokat kell megadni:
 
-Ha a token lejárt vagy érvénytelen, a rendszer automatikusan a bejelentkezési oldalra irányít.
+#### Fizetés megadása
+- Add meg a havi nettó fizetésedet forintban.
+- Ez az összeg lesz az alapja a napi költségvetés számításának.
 
-### 4.3. Felhasználói felület (/main)
+#### Fix kiadások hozzáadása
+- Kattints a **+ Fix kiadás hozzáadása** gombra.
+- Add meg a kiadás nevét (pl. "Albérlet", "Rezsi") és az összegét.
+- A fix kiadások automatikusan levonásra kerülnek a havi költségvetésből.
+- Gyors hozzáadás: kattints az előre definiált gombokra (Albérlet, Rezsi, Telefon, Internet).
 
-A fő felület a naptár és a költések kezelésére szolgál.
+#### Értesítések (emlékeztetők) beállítása
+- Kattints a **+ Értesítés hozzáadása** gombra.
+- Add meg az értesítés nevét, összegét és a hónap napját (1-31).
+- Az értesítések ismétlődőek (minden hónapban ugyanazon a napon).
+- A fő képernyőn a mai napi értesítések kiemelten megjelennek.
 
-**Naptár nézet**
-- A hónap napjai hétfővel kezdődő hetekben jelennek meg.
-- A mai nap kiemelten jelenik meg.
-- Minden napra rákattintva megtekinthetők az aznapi költések.
+#### Mentés és folytatás
+- Kattints a **Mentés és folytatás** gombra.
+- Az adatok automatikusan szinkronizálódnak a szerverrel.
 
-**Költés rögzítése**
-- Válassz dátumot, összeget, leírást és kategóriát.
-- A kategória automatikusan beépül a leírásba.
-- A "Hozzáadás" gombbal rögzíthető a költés.
+### 4.3. Fő képernyő – Naptár és költéskezelés
 
-**Napi költések kezelése**
-- Rákattintva egy napra megnyílik a napi részletező nézet.
-- Itt lehet költéseket törölni vagy szerkeszteni.
-- A napi összköltés automatikusan számítódik.
+A fő képernyő (`/main`) a következő elemeket tartalmazza:
 
-**Statisztikák**
-- **Havi összköltés:** az aktuális hónap összes rögzített költése.
-- **Napi keret:** (fizetés - fix kiadások - havi költés) / hátralévő napok.
-- **Heti limit státusz:** figyelmeztetés, ha a heti költés eléri a 70%-ot vagy 100%-ot.
-- **Kategóriánkénti megoszlás:** kördiagram a költések eloszlásáról.
-- **Top 5 költés:** a legnagyobb összegű költések listája.
+#### Naptár
+- A hónap napjai hétfővel kezdődően jelennek meg.
+- A mai nap kiemelten szerepel.
+- Minden nap alatt látható az aznapi összesített költés.
+- Kattints egy napra a részletes nézet megnyitásához.
 
-**Értesítések**
-- A mai napra eső értesítések automatikusan megjelennek.
-- Az értesítések a bejelentkezési/beállítások oldalon kezelhetők.
+#### Költés rögzítése
+1. Válassz dátumot (alapértelmezett a mai nap).
+2. Válassz kategóriát (Étel, Bolt, Cigi, Szórakozás, Kávé, Utazás, Ruházat, Egészség, Számlák, Egyéb).
+3. Add meg az összeget forintban.
+4. Opcionálisan adj meg leírást.
+5. Kattints a **Költés rögzítése** gombra.
 
-### 4.4. Admin felület (/admin)
+#### Statisztikák
+- **Napi költségvetés:** A megmaradt összeg osztva a hátralévő napok számával.
+- **Havi költés:** Az aktuális hónapban rögzített költések összege.
+- **Heti limit állapot:** Figyelmeztetés, ha a heti költés eléri a 70%-ot vagy meghaladja a 100%-ot.
+- **Kategóriánkénti megoszlás:** Kördiagram a költések kategóriánkénti eloszlásáról.
+- **Top költések:** Az 5 legnagyobb költés listája.
 
-Az admin felület kizárólag a super admin (`is_admin = true`) felhasználóknak érhető el. Az admin felhasználó: `admin` / `admin123`.
+#### Napi részletes nézet
+- Kattints egy napra a naptárban.
+- Megjelennek az adott napi költések részletesen.
+- Lehetőség van költés szerkesztésére és törlésére.
 
-**Felhasználók kezelése**
-- Összes regisztrált felhasználó listázása névvel, e-mail címmel, fizetéssel, költések számával és összegével.
-- Új felhasználó létrehozása: felhasználónév, jelszó, e-mail, fizetés megadásával.
-- Meglévő felhasználó szerkesztése: fizetés és e-mail módosítása.
-- Felhasználó törlése: megerősítő dialógus után véglegesen törölhető.
+#### Értesítések
+- A képernyő tetején megjelennek a mai napi esedékes értesítések (pl. "Ma esedékes: Rezsi – 25 000 Ft").
 
-**Statisztikák**
-- Összes felhasználó száma.
-- Összes regisztrált költés száma.
-- Összes költött összeg.
-- Átlagos fizetés.
+#### Egyéb funkciók
+- **Hónap váltása:** Előző és következő hónap gombokkal.
+- **Beállítások:** Visszalépés a fizetés és fix kiadások módosításához.
+- **Kijelentkezés:** Kilépés és adatok törlése a böngészőből.
 
-### 4.5. Beállítások kezelése
+### 4.4. Adminisztrátori felület
 
-A `/login` oldalon, bejelentkezés után érhetők el a következő beállítások:
+Az admin felület (`/admin`) csak admin jogosultsággal érhető el.
 
-**Fizetés**
-- A havi nettó fizetés megadása forintban.
+#### Elérés
+1. Jelentkezz be az admin felhasználóval (alapértelmezett: `admin` / `admin123`).
+2. A fő képernyőn kattints az **Admin** gombra, vagy navigálj közvetlenül a `/admin` útvonalra.
 
-**Fix kiadások**
-- Rezsi, albérlet, biztosítás és egyéb rendszeres kiadások rögzítése.
-- Minden kiadáshoz név és össz
-e g   t a r t o z i k . 
- 
- -   G y o r s   h o z z �a d �s   e l 9 r e   d e f i n i �l t   s a b l o n o k k a l   ( R e z s i ,   A l b � r l e t ,   B i z t o s � t �s ,   T e l e f o n ,   I n t e r n e t ,   S p o t i f y ,   E g y � b ) . 
- 
- 
- 
- * * 0 r t e s � t � s e k   /   E m l � k e z t e t 9 k * * 
- 
- -   S z �m l a f i z e t � s i   e m l � k e z t e t 9 k   b e �l l � t �s a . 
- 
- -   N � v ,   � s s z e g   � s   a   h Bn a p   n a p j �n a k   m e g a d �s a . 
- 
- -   I s m � t l 9 d 9   � r t e s � t � s e k   m i n d e n   h Bn a p b a n   u g y a n a z o n   a   n a p o n . 
- 
- 
- 
- - - - 
- 
- 
- 
- # #   5 .   T e l e p � t � s i   _t m u t a t B
- 
- 
- 
- # # #   5 . 1 .   K � v e t e l m � n y e k 
- 
- 
- 
- |   S z o f t v e r   |   M i n .   v e r z i B  |   L e t � l t � s   | 
- 
- | - - - - - - - - - - | - - - - - - - - - - - - - | - - - - - - - - - - | 
- 
- |   P H P   |   8 . 2   |   h t t p s : / / w i n d o w s . p h p . n e t / d o w n l o a d   | 
- 
- |   C o m p o s e r   |   2 . x   |   h t t p s : / / g e t c o m p o s e r . o r g / d o w n l o a d /   | 
- 
- |   M y S Q L   /   M a r i a D B   |   8 . 0 +   |   X A M P P ,   W A M P   v a g y   � n �l l B  | 
- 
- |   N o d e . j s   |   1 8 +   |   h t t p s : / / n o d e j s . o r g /   | 
- 
- |   A n g u l a r   C L I   |   1 7 +   |   ` n p m   i n s t a l l   - g   @ a n g u l a r / c l i `   | 
- 
- 
- 
- * * P H P   k i t e r j e s z t � s e k   ( p h p . i n i ) : * * 
- 
- ` ` ` i n i 
- 
- e x t e n s i o n = p d o _ m y s q l 
- 
- e x t e n s i o n = z i p 
- 
- e x t e n s i o n = f i l e i n f o 
- 
- e x t e n s i o n = o p e n s s l 
- 
- ` ` ` 
- 
- 
- 
- # # #   5 . 2 .   L � p � s r 9 l   l � p � s r e   t e l e p � t � s 
- 
- 
- 
- * * 1 .   M y S Q L   a d a t b �z i s   l � t r e h o z �s a * * 
- 
- ` ` ` s q l 
- 
- C R E A T E   D A T A B A S E   t r a c k m a t e   C H A R A C T E R   S E T   u t f 8 m b 4   C O L L A T E   u t f 8 m b 4 _ u n i c o d e _ c i ; 
- 
- ` ` ` 
- 
- 
- 
- * * 2 .   B a c k e n d   k o n f i g u r �c i B* * 
- 
- N y i s d   m e g   a   ` t r a c k m a t e - f u l l s t a c k / b a c k e n d / . e n v `   f �j l t : 
- 
- ` ` ` e n v 
- 
- D B _ C O N N E C T I O N = m y s q l 
- 
- D B _ H O S T = 1 2 7 . 0 . 0 . 1 
- 
- D B _ P O R T = 3 3 0 6 
- 
- D B _ D A T A B A S E = t r a c k m a t e 
- 
- D B _ U S E R N A M E = r o o t 
- 
- D B _ P A S S W O R D = 
- 
- ` ` ` 
- 
- 
- 
- * * 3 .   C o m p o s e r   f =g g 9 s � g e k   t e l e p � t � s e * * 
- 
- ` ` ` p o w e r s h e l l 
- 
- c d   C : \ g e \ t r a c k m a t e \ t r a c k m a t e - f u l l s t a c k \ b a c k e n d 
- 
- c o m p o s e r   i n s t a l l 
- 
- ` ` ` 
- 
- 
- 
- * * 4 .   M i g r �c i B  � s   s e e d e l � s * * 
- 
- ` ` ` p o w e r s h e l l 
- 
- c d   C : \ g e \ t r a c k m a t e \ t r a c k m a t e - f u l l s t a c k \ b a c k e n d 
- 
- p h p   a r t i s a n   m i g r a t e   - - s e e d 
- 
- ` ` ` 
- 
- 
- 
- * * 5 .   L a r a v e l   s z e r v e r   i n d � t �s a * * 
- 
- ` ` ` p o w e r s h e l l 
- 
- c d   C : \ g e \ t r a c k m a t e \ t r a c k m a t e - f u l l s t a c k \ b a c k e n d 
- 
- p h p   a r t i s a n   s e r v e 
- 
- ` ` ` 
- 
- 
- 
- * * 6 .   F r o n t e n d   f =g g 9 s � g e k   t e l e p � t � s e * *   ( _j   t e r m i n �l ) 
- 
- ` ` ` p o w e r s h e l l 
- 
- c d   C : \ g e \ t r a c k m a t e 
- 
- n p m   i n s t a l l 
- 
- ` ` ` 
- 
- 
- 
- * * 7 .   A n g u l a r   s z e r v e r   i n d � t �s a * * 
- 
- ` ` ` p o w e r s h e l l 
- 
- c d   C : \ g e \ t r a c k m a t e 
- 
- n g   s e r v e 
- 
- ` ` ` 
- 
- 
- 
- # # #   5 . 3 .   E l � r h e t 9 s � g e k 
- 
- 
- 
- -   B a c k e n d   A P I :   h t t p : / / l o c a l h o s t : 8 0 0 0 
- 
- -   F r o n t e n d   a l k a l m a z �s :   h t t p : / / l o c a l h o s t : 4 2 0 0 
- 
- 
- 
- # # #   5 . 4 .   A l a p � r t e l m e z e t t   f e l h a s z n �l Bk 
- 
- 
- 
- |   S z e r e p   |   F e l h a s z n �l Bn � v   |   J e l s z B  | 
- 
- | - - - - - - - - | - - - - - - - - - - - - - - - | - - - - - - - - | 
- 
- |   S u p e r   A d m i n   |   ` a d m i n `   |   ` a d m i n 1 2 3 `   | 
- 
- |   T e s z t   f e l h a s z n �l B  |   ` t e s t `   |   ` t e s t 1 2 3 4 `   | 
- 
- 
- 
- - - - 
- 
- 
- 
- # #   6 .    s s z e f o g l a l �s 
- 
- 
- 
- A   p r o j e k t   c � l j a   e g y   s z e m � l y e s   k � l t s � g v e t � s - k e z e l 9   a l k a l m a z �s   e l k � s z � t � s e   v o l t ,   a m e l y   s e g � t   a   f e l h a s z n �l Bk n a k   n y o m o n   k � v e t n i   h a v i   b e v � t e l e i k e t   � s   k i a d �s a i k a t .   A   f e j l e s z t � s   s o r �n   k i e m e l t   f i g y e l m e t   f o r d � t o t t u n k   a   b i z t o n s �g r a   ( t o k e n - a l a p _  h i t e l e s � t � s   L a r a v e l   S a n c t u m m a l ) ,   a z   a d a t o k   p e r z i s z t e n s   t �r o l �s �r a   ( M y S Q L   r e l �c i Bs   a d a t b �z i s ) ,   v a l a m i n t   a z   �t l �t h a t B,   j o g k � r - a l a p _  h o z z �f � r � s - k e z e l � s r e   ( A d m i n M i d d l e w a r e ) . 
- 
- 
- 
- A   b a c k e n d   L a r a v e l   1 2   /   P H P   8 . 2   a l a p o n   R E S T   A P I - t   b i z t o s � t ,   a m e l y e t   L a r a v e l   S a n c t u m   v � d .   A   f r o n t e n d   A n g u l a r   1 7 +   s t a n d a l o n e   k o m p o n e n s - a r c h i t e k t _r �v a l   k � s z =l t ,   C S S 3   s t � l u s o z �s s a l .   A   k � t   r � t e g   k � z � t t   t i s z t �n   d e f i n i �l t   A P I - n   k e r e s z t =l   f o l y i k   a   k o m m u n i k �c i B,   B e a r e r   t o k e n   a l a p _  a u t e n t i k �c i Bv a l . 
- 
- 
- 
- * * M e g v a l Bs � t o t t   f u n k c i o n a l i t �s o k : * * 
- 
- -   J o g k � r   a l a p _  h o z z �f � r � s   ( a d m i n   /   n o r m �l   f e l h a s z n �l B) 
- 
- -   R e g i s z t r �c i B  � s   b e j e l e n t k e z � s   t o k e n - a l a p _  h i t e l e s � t � s s e l 
- 
- -   H a v i   f i z e t � s   r � g z � t � s e   � s   k e z e l � s e 
- 
- -   F i x   k i a d �s o k   t e l j e s   C R U D - j a 
- 
- -   N a p i   k � l t � s e k   r � g z � t � s e   k a t e g Br i �k   s z e r i n t   n a p t �r   n � z e t b e n 
- 
- -   0 r t e s � t � s e k   � s   e m l � k e z t e t 9 k   b e �l l � t �s a 
- 
- -   A d m i n   f e l =l e t   f e l h a s z n �l Bk   k e z e l � s � r e 
- 
- -   S t a t i s z t i k �k   � s   d i a g r a m o k   ( k a t e g Br i �n k � n t i   m e g o s z l �s ,   t o p   k � l t � s e k ) 
- 
- -   H a v i   a u t o m a t i k u s   k � l t � s n u l l �z �s   _j   h Bn a p   k e z d e t e k o r 
- 
- -   S z e r v e r   s t �t u s z   e l l e n 9 r z � s 
- 
- 
- 
- * * J � v 9 b e l i   f e j l e s z t � s i   i r �n y o k : * * 
- 
- -   W e b S o c k e t - a l a p _  v a l Bs   i d e j 9�   � r t e s � t � s e k 
- 
- -   P D F   a l a p _  h a v i   r i p o r t   g e n e r �l �s 
- 
- -   K � t f a k t o r o s   h i t e l e s � t � s   a d m i n o k n a k 
- 
- -   E - m a i l   � r t e s � t � s e k   ( s z �m l a f i z e t � s i   e m l � k e z t e t 9 k ) 
- 
- -   M o b i l a l k a l m a z �s   ( P W A   v a g y   n a t � v ) 
- 
- -   I m p o r t �l �s / e x p o r t �l �s   C S V / E x c e l   f o r m �t u m b a n 
- 
- -   T � b b n y e l v 9� s � g   ( i 1 8 n )   t �m o g a t �s a 
- 
- -   T e l j e s   k � r 9�   P o l i c y - r e n d s z e r   f i n o m h a n g o l �s a 
- 
- 
+#### Funkciók
+- **Felhasználók listája:** Az összes regisztrált felhasználó megjelenítése (név, e-mail, fizetés, költések száma, összes költés).
+- **Új felhasználó létrehozása:** Felhasználónév, jelszó, e-mail és fizetés megadásával.
+- **Felhasználó módosítása:** Fizetés és e-mail cím szerkesztése.
+- **Felhasználó törlése:** Felhasználó végleges eltávolítása a rendszerből (saját magát nem lehet törölni).
+- **Statisztikák:** Összesített adatok (felhasználók száma, átlagfizetés, szerver státusz).
+
+### 4.5. Téma váltás
+
+Az alkalmazás 8 különböző színtémát támogat:
+
+| Téma | Ikon | Jellemzők |
+|------|------|-----------|
+| Sötét | 🌙 | Alapértelmezett, kékes-lila árnyalatok |
+| Világos | ☀️ | Világos háttér, sötét szöveg |
+| Naplemente | 🌅 | Meleg, narancs-piros tónusok |
+| Őserdő | 🌲 | Zöld, természetes színek |
+| Tenger | 🌊 | Kék, óceán ihlette |
+| Rózsa | 🌸 | Rózsaszín, romantikus |
+| Arany | ✨ | Arany, luxus hatás |
+| Minimal | 💎 | Egyszerű, fehér alap |
+
+**Téma váltás:** Kattints a képernyő jobb felső sarkában lévő téma ikonra, és válaszd ki a kívánt témát. A választás automatikusan mentődik a böngészőben.
+
+---
+
+## 5. Telepítési útmutató
+
+### 5.1. Követelmények
+
+| Szoftver | Min. verzió | Letöltés |
+|----------|-------------|----------|
+| PHP | 8.2 | https://windows.php.net/download |
+| Composer | 2.x | https://getcomposer.org/download/ |
+| MySQL / MariaDB | 8.0+ | XAMPP, WAMP vagy önálló |
+| Node.js | 18+ | https://nodejs.org/ |
+| Angular CLI | 17+ | `npm install -g @angular/cli` |
+
+**Szükséges PHP kiterjesztések (php.ini):**
+```ini
+extension=pdo_mysql
+extension=zip
+extension=fileinfo
+extension=openssl
+```
+
+### 5.2. MySQL adatbázis létrehozása
+
+Hozd létre a `trackmate` adatbázist MySQL-ben:
+
+```sql
+CREATE DATABASE trackmate CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+### 5.3. Laravel backend telepítése
+
+1. **Környezeti változók beállítása:**
+   Nyisd meg a `trackmate-fullstack/backend/.env` fájlt, és állítsd be:
+   ```env
+   APP_NAME=TrackMate
+   APP_URL=http://localhost:8000
+   
+   DB_CONNECTION=mysql
+   DB_HOST=127.0.0.1
+   DB_PORT=3306
+   DB_DATABASE=trackmate
+   DB_USERNAME=root
+   DB_PASSWORD=
+   ```
+
+2. **Composer függőségek telepítése:**
+   ```powershell
+   cd C:\ge\trackmate\trackmate-fullstack\backend
+   composer install
+   ```
+
+3. **Alkalmazás kulcs generálása:**
+   ```powershell
+   php artisan key:generate
+   ```
+
+4. **Migráció és seedelés:**
+   ```powershell
+   php artisan migrate --seed
+   ```
+   Ez létrehozza az összes táblát és feltölti a super admin felhasználót.
+
+5. **Laravel szerver indítása:**
+   ```powershell
+   php artisan serve
+   ```
+   A szerver elérhető: **http://localhost:8000**
+
+### 5.4. Angular frontend telepítése
+
+1. **Függőségek telepítése:**
+   Nyiss egy új terminált:
+   ```powershell
+   cd C:\ge\trackmate
+   npm install
+   ```
+
+2. **Fejlesztői szerver indítása:**
+   ```powershell
+   ng serve
+   ```
+   A frontend elérhető: **http://localhost:4200**
+
+### 5.5. Alapértelmezett belépési adatok (seedelés után)
+
+| Szerep | Felhasználónév | Jelszó |
+|--------|---------------|--------|
+| Super Admin | `admin` | `admin123` |
+| Teszt user | `test` | `test1234` |
+
+### 5.6. Fejlesztői parancsok
+
+#### Laravel
+```powershell
+# Szerver indítása
+php artisan serve
+
+# Új migráció
+php artisan make:migration create_tabla_neve
+
+# Migráció futtatása
+php artisan migrate
+
+# Adatbázis újraseedelése
+php artisan migrate:fresh --seed
+
+# Route-ok listázása
+php artisan route:list
+```
+
+#### Angular
+```powershell
+# Szerver indítása
+ng serve
+
+# Build (fejlesztői)
+ng build
+
+# Build (produkciós)
+ng build --configuration production
+
+# Új komponens
+ng generate component komponens-neve
+
+# Új szolgáltatás
+ng generate service services/szolgaltatas-neve
+```
+
+### 5.7. Hibaelhárítás
+
+#### CORS hiba
+Ellenőrizd a Laravel `.env` fájlban:
+```env
+APP_URL=http://localhost:8000
+FRONTEND_URL=http://localhost:4200
+```
+
+#### "No such file or directory" vendor mappában
+```powershell
+composer install
+```
+
+#### Token érvénytelenség
+Töröld a böngésző `localStorage`-át (`F12 → Application → Local Storage → Clear`) és jelentkezz be újra.
+
+#### MySQL kapcsolat sikertelen
+- Ellenőrizd, hogy a MySQL szerver fut (XAMPP Control Panel).
+- Győződj meg róla, hogy a `trackmate` adatbázis létezik.
+- Ellenőrizd a `DB_USERNAME` és `DB_PASSWORD` helyességét.
+
+---
+
+## 6. Összefoglalás
+
+A TrackMate egy modern, teljes körű költségvetés-kezelő alkalmazás, amely Laravel 12 backenddel és Angular 17+ frontenddel készült. A rendszer a következő főbb jellemzőkkel rendelkezik:
+
+- **Biztonságos autentikáció:** Laravel Sanctum token-alapú hitelesítés.
+- **Teljes CRUD műveletek:** Felhasználók, költések, fix kiadások és értesítések kezelése.
+- **Adminisztrátori felület:** Felhasználók és rendszerstatisztikák kezelése.
+- **Naptár nézet:** Vizualizált havi költések napi bontásban.
+- **Automatikus számítások:** Napi költségvetés, heti limit figyelmeztetések.
+- **Többszínű témák:** 8 különböző megjelenés.
+- **Reszponzív dizájn:** Modern, felhasználóbarát felület.
+
+A projekt jól strukturált, modularizált kódbázissal rendelkezik, amely könnyen továbbfejleszthető és karbantartható. A dokumentáció részletesen bemutatja az architektúrát, az API végpontokat, a frontend komponenseket és a telepítési lépéseket, így a rendszer reprodukálható és továbbfejleszthető.
+
+**Jövőbeli fejlesztési irányok:** PWA támogatás, valós idejű értesítések, PDF riport generálás, többnyelvűség, és részletes analitikai dashboard.
+
