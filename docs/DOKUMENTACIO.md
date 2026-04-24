@@ -29,27 +29,23 @@
    3.6. Adatmodellek (TypeScript interfészek)
    3.7. HTTP Interceptorok
    3.8. Továbbfejlesztési lehetőségek
-4. Felhasználói kézikönyv
-   4.1. Regisztráció és bejelentkezés
-   4.2. Beállítások (fizetés, fix kiadások, értesítések)
-   4.3. Fő képernyő – Naptár és költéskezelés
-   4.4. Adminisztrátori felület
-   4.5. Téma váltás
-5. Telepítési útmutató
-   5.1. Követelmények
-   5.2. MySQL adatbázis létrehozása
-   5.3. Laravel backend telepítése
-   5.4. Angular frontend telepítése
-   5.5. Alapértelmezett belépési adatok
-   5.6. Fejlesztői parancsok
-   5.7. Hibaelhárítás
+
+4. Telepítési útmutató
+   4.1. Követelmények
+   4.2. MySQL adatbázis létrehozása
+   4.3. Laravel backend telepítése
+   4.4. Angular frontend telepítése
+   4.5. Alapértelmezett belépési adatok
+   4.6. Fejlesztői parancsok
+   4.7. Hibaelhárítás
+5. Tesztelés
 6. Összefoglalás
 
 ---
 
 ## 1. Bevezetés
 
-A következő dokumentáció egy személyes költségvetés-kezelő alkalmazás, a TrackMate tervezését és megvalósítását mutatja be. A fejlesztés célja egy korszerű, webalapú platform létrehozása volt, amellyel a felhasználók nyomon követhetik havi bevételeiket és kiadásaikat, rögzíthetik a napi költéseiket, beállíthatják a fix kiadásaikat és értesítéseiket, valamint adminisztrátori felületen kezelhetik a rendszer felhasználóit.
+A következő dokumentáció egy személyes költségvetés-kezelő alkalmazás, a TrackMate tervezését és megvalósítását mutatja be. A fejlesztés célja egy korszerű, webalapú platform létrehozása volt, amellyel a felhasználók nyomon követhetik havi bevételeiket és kiadásaikat, rögzíthetik a napi költéseiket, beállíthatják a fix kiadásaikat és értesítéseiket, személyreszabott elnevezést adhatnak bevételeik és kiadásaiknak. Valamint az adminisztrátori felületen kezelheti a rendszer a felhasználóit.
 
 A rendszer lehetővé teszi a havi fizetés rögzítését, fix kiadások (rezsi, albérlet, stb.) kezelését, napi költések rögzítését kategóriák szerint, értesítések beállítását (pl. számlafizetési emlékeztetők), valamint egy naptár nézetben áttekinthetővé teszi a költéseket. Az alkalmazás két jogosultsági szintet különböztet meg: **Admin** (super admin) és **Felhasználó** (normál bejelentkezett user).
 
@@ -576,119 +572,9 @@ A hibaüzenetet az `ErrorService.show()` metódussal jeleníti meg toast formáb
 
 ---
 
-## 4. Felhasználói kézikönyv
+## 4. Telepítési útmutató
 
-### 4.1. Regisztráció és bejelentkezés
-
-1. Nyisd meg a böngészőben az alkalmazást: `http://localhost:4200`
-2. A kezdőlapon kattints a **Bejelentkezés** gombra.
-3. Ha még nincs fiókod, kattints az **Új fiók létrehozása** linkre.
-4. Töltsd ki a kötelező mezőket:
-   - **Felhasználónév** (legalább 1 karakter)
-   - **Jelszó** (legalább 4 karakter)
-   - **E-mail** (regisztrációnál)
-   - **Jelszó megerősítése** (regisztrációnál)
-5. Kattints a **Bejelentkezés** vagy **Regisztráció** gombra.
-6. Sikeres autentikáció után automatikusan megjelennek a **Beállítások**.
-
-### 4.2. Beállítások (fizetés, fix kiadások, értesítések)
-
-A bejelentkezés után a következő beállításokat kell megadni:
-
-#### Fizetés megadása
-- Add meg a havi nettó fizetésedet forintban.
-- Ez az összeg lesz az alapja a napi költségvetés számításának.
-
-#### Fix kiadások hozzáadása
-- Kattints a **+ Fix kiadás hozzáadása** gombra.
-- Add meg a kiadás nevét (pl. "Albérlet", "Rezsi") és az összegét.
-- A fix kiadások automatikusan levonásra kerülnek a havi költségvetésből.
-- Gyors hozzáadás: kattints az előre definiált gombokra (Albérlet, Rezsi, Telefon, Internet).
-
-#### Értesítések (emlékeztetők) beállítása
-- Kattints a **+ Értesítés hozzáadása** gombra.
-- Add meg az értesítés nevét, összegét és a hónap napját (1-31).
-- Az értesítések ismétlődőek (minden hónapban ugyanazon a napon).
-- A fő képernyőn a mai napi értesítések kiemelten megjelennek.
-
-#### Mentés és folytatás
-- Kattints a **Mentés és folytatás** gombra.
-- Az adatok automatikusan szinkronizálódnak a szerverrel.
-
-### 4.3. Fő képernyő – Naptár és költéskezelés
-
-A fő képernyő (`/main`) a következő elemeket tartalmazza:
-
-#### Naptár
-- A hónap napjai hétfővel kezdődően jelennek meg.
-- A mai nap kiemelten szerepel.
-- Minden nap alatt látható az aznapi összesített költés.
-- Kattints egy napra a részletes nézet megnyitásához.
-
-#### Költés rögzítése
-1. Válassz dátumot (alapértelmezett a mai nap).
-2. Válassz kategóriát (Étel, Bolt, Cigi, Szórakozás, Kávé, Utazás, Ruházat, Egészség, Számlák, Egyéb).
-3. Add meg az összeget forintban.
-4. Opcionálisan adj meg leírást.
-5. Kattints a **Költés rögzítése** gombra.
-
-#### Statisztikák
-- **Napi költségvetés:** A megmaradt összeg osztva a hátralévő napok számával.
-- **Havi költés:** Az aktuális hónapban rögzített költések összege.
-- **Heti limit állapot:** Figyelmeztetés, ha a heti költés eléri a 70%-ot vagy meghaladja a 100%-ot.
-- **Kategóriánkénti megoszlás:** Kördiagram a költések kategóriánkénti eloszlásáról.
-- **Top költések:** Az 5 legnagyobb költés listája.
-
-#### Napi részletes nézet
-- Kattints egy napra a naptárban.
-- Megjelennek az adott napi költések részletesen.
-- Lehetőség van költés szerkesztésére és törlésére.
-
-#### Értesítések
-- A képernyő tetején megjelennek a mai napi esedékes értesítések (pl. "Ma esedékes: Rezsi – 25 000 Ft").
-
-#### Egyéb funkciók
-- **Hónap váltása:** Előző és következő hónap gombokkal.
-- **Beállítások:** Visszalépés a fizetés és fix kiadások módosításához.
-- **Kijelentkezés:** Kilépés és adatok törlése a böngészőből.
-
-### 4.4. Adminisztrátori felület
-
-Az admin felület (`/admin`) csak admin jogosultsággal érhető el.
-
-#### Elérés
-1. Jelentkezz be az admin felhasználóval (alapértelmezett: `admin` / `admin123`).
-2. A fő képernyőn kattints az **Admin** gombra, vagy navigálj közvetlenül a `/admin` útvonalra.
-
-#### Funkciók
-- **Felhasználók listája:** Az összes regisztrált felhasználó megjelenítése (név, e-mail, fizetés, költések száma, összes költés).
-- **Új felhasználó létrehozása:** Felhasználónév, jelszó, e-mail és fizetés megadásával.
-- **Felhasználó módosítása:** Fizetés és e-mail cím szerkesztése.
-- **Felhasználó törlése:** Felhasználó végleges eltávolítása a rendszerből (saját magát nem lehet törölni).
-- **Statisztikák:** Összesített adatok (felhasználók száma, átlagfizetés, szerver státusz).
-
-### 4.5. Téma váltás
-
-Az alkalmazás 8 különböző színtémát támogat:
-
-| Téma | Ikon | Jellemzők |
-|------|------|-----------|
-| Sötét | 🌙 | Alapértelmezett, kékes-lila árnyalatok |
-| Világos | ☀️ | Világos háttér, sötét szöveg |
-| Naplemente | 🌅 | Meleg, narancs-piros tónusok |
-| Őserdő | 🌲 | Zöld, természetes színek |
-| Tenger | 🌊 | Kék, óceán ihlette |
-| Rózsa | 🌸 | Rózsaszín, romantikus |
-| Arany | ✨ | Arany, luxus hatás |
-| Minimal | 💎 | Egyszerű, fehér alap |
-
-**Téma váltás:** Kattints a képernyő jobb felső sarkában lévő téma ikonra, és válaszd ki a kívánt témát. A választás automatikusan mentődik a böngészőben.
-
----
-
-## 5. Telepítési útmutató
-
-### 5.1. Követelmények
+### 4.1. Követelmények
 
 | Szoftver | Min. verzió | Letöltés |
 |----------|-------------|----------|
@@ -706,7 +592,7 @@ extension=fileinfo
 extension=openssl
 ```
 
-### 5.2. MySQL adatbázis létrehozása
+### 4.2. MySQL adatbázis létrehozása
 
 Hozd létre a `trackmate` adatbázist MySQL-ben:
 
@@ -714,7 +600,7 @@ Hozd létre a `trackmate` adatbázist MySQL-ben:
 CREATE DATABASE trackmate CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-### 5.3. Laravel backend telepítése
+### 4.3. Laravel backend telepítése
 
 1. **Környezeti változók beállítása:**
    Nyisd meg a `trackmate-fullstack/backend/.env` fájlt, és állítsd be:
@@ -753,7 +639,7 @@ CREATE DATABASE trackmate CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
    ```
    A szerver elérhető: **http://localhost:8000**
 
-### 5.4. Angular frontend telepítése
+### 4.4. Angular frontend telepítése
 
 1. **Függőségek telepítése:**
    Nyiss egy új terminált:
@@ -768,14 +654,14 @@ CREATE DATABASE trackmate CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
    ```
    A frontend elérhető: **http://localhost:4200**
 
-### 5.5. Alapértelmezett belépési adatok (seedelés után)
+### 4.5. Alapértelmezett belépési adatok (seedelés után)
 
 | Szerep | Felhasználónév | Jelszó |
 |--------|---------------|--------|
 | Super Admin | `admin` | `admin123` |
 | Teszt user | `test` | `test1234` |
 
-### 5.6. Fejlesztői parancsok
+### 4.6. Fejlesztői parancsok
 
 #### Laravel
 ```powershell
@@ -813,7 +699,7 @@ ng generate component komponens-neve
 ng generate service services/szolgaltatas-neve
 ```
 
-### 5.7. Hibaelhárítás
+### 4.7. Hibaelhárítás
 
 #### CORS hiba
 Ellenőrizd a Laravel `.env` fájlban:
@@ -832,10 +718,21 @@ Töröld a böngésző `localStorage`-át (`F12 → Application → Local Storag
 
 #### MySQL kapcsolat sikertelen
 - Ellenőrizd, hogy a MySQL szerver fut (XAMPP Control Panel).
-- Győződj meg róla, hogy a `trackmate` adatbázis létezik.
 - Ellenőrizd a `DB_USERNAME` és `DB_PASSWORD` helyességét.
 
 ---
+
+
+
+## 5. Tesztelés
+- Regisztrációnál a jelszó legalább négy karakter kell legyen különben a "A jelszónak legalább 4 karakter hosszúnak kell lennie!" hibaüzenetet kapjuk.
+- A jelszavaknak bejelentkezésnél és regisztrációnál is egyezniük kell különben a "A jelszavak nem egyeznek!" hibaüzenetet kapjuk. 
+- Jelszó vagy felhasználónév üresen hagyása során a "Kérlek töltsd ki az összes mezőt!" hibaüzenetet kapjuk.
+(bővítése folyamatban)
+
+
+
+
 
 ## 6. Összefoglalás
 
@@ -851,5 +748,5 @@ A TrackMate egy modern, teljes körű költségvetés-kezelő alkalmazás, amely
 
 A projekt jól strukturált, modularizált kódbázissal rendelkezik, amely könnyen továbbfejleszthető és karbantartható. A dokumentáció részletesen bemutatja az architektúrát, az API végpontokat, a frontend komponenseket és a telepítési lépéseket, így a rendszer reprodukálható és továbbfejleszthető.
 
-**Jövőbeli fejlesztési irányok:** PWA támogatás, valós idejű értesítések, PDF riport generálás, többnyelvűség, és részletes analitikai dashboard.
+**Jövőbeli fejlesztési irányok:** PWA támogatás, valós idejű értesítések, PDF riport generálás, többnyelvűség, több pénznem, és részletes analitikai dashboard.
 
